@@ -1,9 +1,8 @@
 pub mod cards;
 mod deck;
 pub mod game;
-pub mod game_errors;
+pub mod enums;
 mod player;
-pub mod player_errors;
 
 #[cfg(test)]
 mod tests {

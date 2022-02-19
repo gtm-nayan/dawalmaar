@@ -1,6 +1,6 @@
 use crate::{
 	cards::{Card, Suit},
-	player_errors::PlayCardError::{self, *},
+	enums::PlayCardError::{self, *},
 };
 use std::collections::BTreeSet;
 
@@ -8,11 +8,21 @@ pub struct Player {
 	// Game is played with only one deck, so a set is used to store the cards.
 	// Additional benefit is that we get automatic sorting of the cards.
 	hand: BTreeSet<Card>,
+	captured: Vec<Card>
 }
 
 impl Player {
 	pub fn add_card(&mut self, card: Card) {
 		self.hand.insert(card);
+	}
+
+	pub fn can_play(&self, card: &Card, suit_in_play: Option<Suit>) -> bool {
+		match suit_in_play {
+			Some(suit) => {
+				card.get_suit() == suit || !self.hand.iter().any(|c| c.get_suit() == suit)
+			}
+			None => true,
+		}
 	}
 
 	pub fn get_hand(&self) -> &BTreeSet<Card> {
@@ -26,6 +36,7 @@ impl Player {
 	pub fn new() -> Player {
 		Player {
 			hand: BTreeSet::new(),
+			captured: Vec::new(),
 		}
 	}
 
@@ -34,20 +45,17 @@ impl Player {
 		card: Card,
 		suit_in_play: Option<Suit>,
 	) -> Result<Card, PlayCardError> {
-		let valid_suit = match suit_in_play {
-			Some(suit) => {
-				card.get_suit() == suit || !self.hand.iter().any(|c| c.get_suit() == suit)
-			}
-			None => true,
-		};
-
-		if !(valid_suit) {
+		if !(self.can_play(&card, suit_in_play)) {
 			Err(CantPlaySuit)
 		} else if self.hand.remove(&card) {
 			Ok(card)
 		} else {
 			Err(CardNotInHand)
 		}
+	}
+
+	pub fn capture(&mut self, cards: Vec<Card>) {
+		self.captured.extend_from_slice(&cards);
 	}
 }
 

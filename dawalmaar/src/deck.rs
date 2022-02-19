@@ -17,6 +17,12 @@ impl Deck {
 		Deck { cards }
 	}
 
+	pub fn new_shuffled() -> Deck {
+		let mut deck = Deck::new();
+		deck.shuffle();
+		deck
+	}
+
 	pub fn shuffle(&mut self) {
 		let mut rng = rand::thread_rng();
 		self.cards.shuffle(&mut rng);
@@ -24,10 +30,6 @@ impl Deck {
 
 	pub fn deal_card(&mut self) -> Option<Card> {
 		self.cards.pop()
-	}
-
-	pub fn is_empty(&self) -> bool {
-		self.cards.is_empty()
 	}
 }
 
@@ -55,15 +57,5 @@ mod tests {
 		deck.shuffle();
 		deck.deal_card().unwrap();
 		assert_eq!(deck.cards.len(), 51);
-	}
-
-	#[test]
-	fn test_deck_is_empty() {
-		let mut deck = Deck::new();
-
-		for _ in 0..52 {
-			deck.deal_card().unwrap();
-		}
-		assert!(deck.is_empty());
 	}
 }

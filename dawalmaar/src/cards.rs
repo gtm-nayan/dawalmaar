@@ -44,11 +44,13 @@ impl Card {
 		self.rank
 	}
 
-	pub fn get_value(&self, suit_in_play: Suit, trump_suit: Suit) -> i32 {
+	pub fn get_value(&self, suit_in_play: Suit, trump_suit: Option<Suit>) -> i32 {
 		let temp = (self.rank as i32) + (self.suit as i32);
 
 		if !(self.suit == suit_in_play) {
-			if self.suit == trump_suit {
+			// Safe to unwrap because if someone played a card that wasn't of the suit in play,
+			// the trump suit would be set.
+			if self.suit == trump_suit.unwrap() {
 				temp + 1000
 			} else {
 				temp - 1000
@@ -107,19 +109,19 @@ mod tests {
 	#[test]
 	fn test_card_get_value() {
 		assert_eq!(
-			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Spades, Suit::Spades),
+			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Spades, Some(Suit::Spades)),
 			102
 		);
 		assert_eq!(
-			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Spades, Suit::Hearts),
+			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Spades, Some(Suit::Hearts)),
 			102
 		);
 		assert_eq!(
-			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Hearts, Suit::Spades),
+			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Hearts, Some(Suit::Spades)),
 			1102
 		);
 		assert_eq!(
-			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Hearts, Suit::Hearts),
+			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Hearts, Some(Suit::Hearts)),
 			102 - 1000
 		);
 	}
