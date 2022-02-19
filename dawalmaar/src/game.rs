@@ -1,8 +1,9 @@
 use crate::{
-	cards::{Card, Suit},
+	cards::{Card, Rank, Suit},
 	deck::Deck,
 	enums::{PlayCardError, StartError, TrickEndResult},
 	player::Player,
+	teams::Team,
 };
 
 pub struct Game {
@@ -70,7 +71,8 @@ impl Game {
 	fn next_turn(&mut self) -> usize {
 		let temp = (self.turn + 1) % 4;
 
-		if temp == self.previous_trick_winner { // This means we've been through all 4 players
+		if temp == self.previous_trick_winner {
+			// This means we've been through all 4 players
 			let mut highest_card = i32::MIN;
 			let mut hand_winner = 0;
 			let mut unwrapped = Vec::new();
@@ -84,7 +86,7 @@ impl Game {
 				}
 				unwrapped.push(card);
 			}
-			
+
 			self.suit_in_play = None;
 			self.players[hand_winner].capture(unwrapped);
 			self.turn = hand_winner;
@@ -120,7 +122,7 @@ impl Game {
 		let next_turn = self.next_turn();
 
 		if self.is_over() {
-			Ok(TrickEndResult::GameOver)
+			Ok(TrickEndResult::GameOver(self.tally_scores()))
 		} else {
 			Ok(TrickEndResult::NextTrick(next_turn))
 		}
@@ -136,5 +138,20 @@ impl Game {
 			self.deal_cards();
 			Ok(())
 		}
+	}
+
+	pub fn tally_scores(&self) -> [Team; 2] {
+		let mut scores = [Team::new(), Team::new()];
+		for (i, player) in self.players.iter().enumerate() {
+			let captured_cards = player.get_captured();
+			scores[i % 2].add_to_captured(captured_cards.len() as u8);
+
+			for card in captured_cards {
+				if card.get_rank() == Rank::Ten {
+					scores[i % 2].increment_tens();
+				}
+			}
+		}
+		scores
 	}
 }

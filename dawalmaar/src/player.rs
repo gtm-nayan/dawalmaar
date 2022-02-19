@@ -8,7 +8,7 @@ pub struct Player {
 	// Game is played with only one deck, so a set is used to store the cards.
 	// Additional benefit is that we get automatic sorting of the cards.
 	hand: BTreeSet<Card>,
-	captured: Vec<Card>
+	captured: Vec<Card>,
 }
 
 impl Player {
@@ -56,6 +56,10 @@ impl Player {
 
 	pub fn capture(&mut self, cards: Vec<Card>) {
 		self.captured.extend(cards);
+	}
+
+	pub fn get_captured(&self) -> &Vec<Card> {
+		&self.captured
 	}
 }
 

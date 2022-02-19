@@ -1,3 +1,5 @@
+use crate::teams::Team;
+
 pub enum StartError {
 	GameAlreadyStarted,
 	GameNotFull,
@@ -11,8 +13,8 @@ pub enum PlayCardError {
 	CantPlaySuit,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum TrickEndResult {
 	NextTrick(usize),
-	GameOver,
+	GameOver([Team; 2]),
 }

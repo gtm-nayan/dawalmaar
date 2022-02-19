@@ -48,7 +48,7 @@ impl Card {
 		let temp = (self.rank as i32) + (self.suit as i32);
 
 		if !(self.suit == suit_in_play) {
-			// Safe to unwrap here because if someone played a card 
+			// Safe to unwrap here because if someone played a card
 			// that wasn't of the suit in play,
 			// the trump suit would be set.
 			if self.suit == trump_suit.unwrap() {
