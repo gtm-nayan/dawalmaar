@@ -55,7 +55,6 @@ impl Game {
 			for _ in 0..13 {
 				player.add_card(deck.deal_card().unwrap());
 			}
-			player.sort_hand();
 		}
 	}
 

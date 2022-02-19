@@ -1,47 +1,53 @@
-use crate::cards::{Card, Suit};
+use crate::{
+	cards::{Card, Suit},
+	player_errors::PlayCardError::{self, *},
+};
+use std::collections::BTreeSet;
 
 pub struct Player {
-	hand: Vec<Card>,
+	// Game is played with only one deck, so a set is used to store the cards.
+	// Additional benefit is that we get automatic sorting of the cards.
+	hand: BTreeSet<Card>,
 }
 
 impl Player {
-	pub fn new() -> Player {
-		Player { hand: Vec::new() }
-	}
-
 	pub fn add_card(&mut self, card: Card) {
-		self.hand.push(card);
+		self.hand.insert(card);
 	}
 
-	pub fn play_card(&mut self, card: Card) -> Result<Card, ()> {
-		let len_before = self.hand.len();
-		self.hand.retain(|c| *c != card);
-		if len_before == self.hand.len() {
-			return Err(());
-		}
-		Ok(card)
-	}
-
-	pub fn can_play(&self, card: Card, suit_in_play: Option<Suit>) -> bool {
-		match suit_in_play {
-			Some(suit) => {
-				// If a suit is in play, the player can only play a card of that suit if they have it.
-				card.get_suit() == suit || !self.hand.iter().any(|c| c.get_suit() == suit)
-			}
-			None => true,
-		}
-	}
-
-	pub fn sort_hand(&mut self) {
-		self.hand.sort();
-	}
-
-	pub fn get_hand(&self) -> &Vec<Card> {
+	pub fn get_hand(&self) -> &BTreeSet<Card> {
 		&self.hand
 	}
 
 	pub fn is_empty(&self) -> bool {
 		self.hand.is_empty()
+	}
+
+	pub fn new() -> Player {
+		Player {
+			hand: BTreeSet::new(),
+		}
+	}
+
+	pub fn play_card(
+		&mut self,
+		card: Card,
+		suit_in_play: Option<Suit>,
+	) -> Result<Card, PlayCardError> {
+		let valid_suit = match suit_in_play {
+			Some(suit) => {
+				card.get_suit() == suit || !self.hand.iter().any(|c| c.get_suit() == suit)
+			}
+			None => true,
+		};
+
+		if !(valid_suit) {
+			Err(CantPlaySuit)
+		} else if self.hand.remove(&card) {
+			Ok(card)
+		} else {
+			Err(CardNotInHand)
+		}
 	}
 }
 
@@ -65,54 +71,60 @@ mod tests {
 	}
 
 	#[test]
-	fn test_hand_remove_card() {
-		let mut player = Player::new();
-		player.add_card(Card::new(Suit::Spades, Rank::Two));
-
-		assert!(player
-			.play_card(Card::new(Suit::Spades, Rank::Three))
-			.is_err());
-
-		assert_eq!(
-			player
-				.play_card(Card::new(Suit::Spades, Rank::Two))
-				.unwrap(),
-			Card::new(Suit::Spades, Rank::Two)
-		);
-		assert!(player.is_empty());
-
-		assert!(player
-			.play_card(Card::new(Suit::Spades, Rank::Two))
-			.is_err());
-	}
-
-	#[test]
 	fn test_hand_sort() {
 		let mut player = Player::new();
 		player.add_card(Card::new(Suit::Spades, Rank::Three));
 		player.add_card(Card::new(Suit::Spades, Rank::Two));
-		player.add_card(Card::new(Suit::Spades, Rank::Three));
-		player.sort_hand();
-		assert_eq!(player.hand[0], Card::new(Suit::Spades, Rank::Two));
-		assert_eq!(player.hand[1], Card::new(Suit::Spades, Rank::Three));
-		assert_eq!(player.hand[2], Card::new(Suit::Spades, Rank::Three));
+		player.add_card(Card::new(Suit::Clubs, Rank::Three));
+		player.get_hand().iter().for_each(|c| {
+			dbg!(c);
+		});
 	}
 
 	#[test]
-	fn test_can_play() {
+	fn test_play_card() {
 		let mut player = Player::new();
+
 		player.add_card(Card::new(Suit::Spades, Rank::Two));
+		player.add_card(Card::new(Suit::Spades, Rank::Three));
+		player.add_card(Card::new(Suit::Clubs, Rank::Three));
+		player.add_card(Card::new(Suit::Clubs, Rank::Four));
+		player.add_card(Card::new(Suit::Diamonds, Rank::Four));
 
-		// Without a suit in play, they can play any card.
-		assert!(player.can_play(Card::new(Suit::Spades, Rank::Three), None));
-		assert!(player.can_play(Card::new(Suit::Hearts, Rank::Three), None));
+		// Suit in play is None, so player can play any card.
+		assert_eq!(
+			player.play_card(Card::new(Suit::Spades, Rank::Two), None),
+			Ok(Card::new(Suit::Spades, Rank::Two))
+		);
 
-		// With a suit in play and they have that suit, they can only play that suit.
-		assert!(player.can_play(Card::new(Suit::Spades, Rank::Three), Some(Suit::Spades)));
-		assert!(!player.can_play(Card::new(Suit::Hearts, Rank::Three), Some(Suit::Spades)));
+		// provided they have it
+		assert_eq!(
+			player.play_card(Card::new(Suit::Spades, Rank::Four), None),
+			Err(CardNotInHand)
+		);
 
-		// With a suit in play and they don't have it they can play any suit.
-		assert!(player.can_play(Card::new(Suit::Hearts, Rank::Three), Some(Suit::Clubs)));
-		assert!(player.can_play(Card::new(Suit::Spades, Rank::Three), Some(Suit::Clubs)));
+		// Suit in play is Spades, so player can only play Spades cards.
+		assert_eq!(
+			player.play_card(Card::new(Suit::Spades, Rank::Three), Some(Suit::Spades)),
+			Ok(Card::new(Suit::Spades, Rank::Three))
+		);
+
+		// Suit in play is Hearts, but player doesn't have any Hearts cards, so can play any card.
+		assert_eq!(
+			player.play_card(Card::new(Suit::Clubs, Rank::Three), Some(Suit::Hearts)),
+			Ok(Card::new(Suit::Clubs, Rank::Three))
+		);
+
+		// Suit in play is Diamonds, but player tries to play a Clubs card while holding a Diamonds card, so can't play.
+		assert_eq!(
+			player.play_card(Card::new(Suit::Clubs, Rank::Four), Some(Suit::Diamonds)),
+			Err(CantPlaySuit)
+		);
+
+		// Suit in play is Diamonds, but player tries to play a Diamonds card they don't have.
+		assert_eq!(
+			player.play_card(Card::new(Suit::Diamonds, Rank::Five), Some(Suit::Diamonds)),
+			Err(CardNotInHand)
+		);
 	}
 }

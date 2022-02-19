@@ -2,15 +2,15 @@ use strum_macros::EnumIter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
 pub enum Suit {
-	Spades,
-	Clubs,
-	Diamonds,
-	Hearts,
+	Spades = 100,
+	Clubs = 200,
+	Diamonds = 300,
+	Hearts = 400,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, EnumIter)]
 pub enum Rank {
-	Two,
+	Two = 2,
 	Three,
 	Four,
 	Five,
@@ -42,6 +42,20 @@ impl Card {
 
 	pub fn get_rank(&self) -> Rank {
 		self.rank
+	}
+
+	pub fn get_value(&self, suit_in_play: Suit, trump_suit: Suit) -> i32 {
+		let temp = (self.rank as i32) + (self.suit as i32);
+
+		if !(self.suit == suit_in_play) {
+			if self.suit == trump_suit {
+				temp + 1000
+			} else {
+				temp - 1000
+			}
+		} else {
+			temp
+		}
 	}
 }
 
@@ -88,5 +102,25 @@ mod tests {
 		let card5 = Card::new(Suit::Spades, Rank::Three);
 		let card6 = Card::new(Suit::Spades, Rank::Three);
 		assert_eq!(card5, card6);
+	}
+
+	#[test]
+	fn test_card_get_value() {
+		assert_eq!(
+			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Spades, Suit::Spades),
+			102
+		);
+		assert_eq!(
+			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Spades, Suit::Hearts),
+			102
+		);
+		assert_eq!(
+			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Hearts, Suit::Spades),
+			1102
+		);
+		assert_eq!(
+			Card::new(Suit::Spades, Rank::Two).get_value(Suit::Hearts, Suit::Hearts),
+			102 - 1000
+		);
 	}
 }
