@@ -1,7 +1,7 @@
 use crate::{
 	cards::{Card, Suit},
 	deck::Deck,
-	enums::{PlayCardError, TrickEndResult, StartError},
+	enums::{PlayCardError, StartError, TrickEndResult},
 	player::Player,
 };
 
@@ -69,12 +69,12 @@ impl Game {
 
 	fn next_turn(&mut self) -> usize {
 		let temp = (self.turn + 1) % 4;
-		let mut highest_card = i32::MIN;
-		let mut hand_winner = 0;
-		let mut unwrapped = Vec::new();
 
-		if temp == self.previous_trick_winner {
-			// Next trick
+		if temp == self.previous_trick_winner { // This means we've been through all 4 players
+			let mut highest_card = i32::MIN;
+			let mut hand_winner = 0;
+			let mut unwrapped = Vec::new();
+
 			for (i, _card) in self.table.iter().enumerate() {
 				let card = _card.unwrap();
 				let value = card.get_value(self.suit_in_play.unwrap(), self.trump_suit);
@@ -84,6 +84,7 @@ impl Game {
 				}
 				unwrapped.push(card);
 			}
+			
 			self.suit_in_play = None;
 			self.players[hand_winner].capture(unwrapped);
 			self.turn = hand_winner;

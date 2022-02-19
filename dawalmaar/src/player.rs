@@ -55,7 +55,7 @@ impl Player {
 	}
 
 	pub fn capture(&mut self, cards: Vec<Card>) {
-		self.captured.extend_from_slice(&cards);
+		self.captured.extend(cards);
 	}
 }
 
