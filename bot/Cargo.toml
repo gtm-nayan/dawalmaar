@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 dawalmaar = { path = "../dawalmaar" }
+poise = { git = "https://github.com/kangalioo/poise", branch = "master", features = [
+	"collector",
+] }
