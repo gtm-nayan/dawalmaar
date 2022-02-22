@@ -73,24 +73,24 @@ impl Game {
 
 		if temp == self.previous_trick_winner {
 			// This means we've been through all 4 players
-			let mut highest_card = i32::MIN;
-			let mut hand_winner = 0;
+			let mut highest_card_value = i32::MIN;
+			let mut trick_winner = 0;
 			let mut unwrapped = Vec::new();
 
 			for (i, _card) in self.table.iter().enumerate() {
 				let card = _card.unwrap();
 				let value = card.get_value(self.suit_in_play.unwrap(), self.trump_suit);
-				if value > highest_card {
-					highest_card = value;
-					hand_winner = i;
+				if value > highest_card_value {
+					highest_card_value = value;
+					trick_winner = i;
 				}
 				unwrapped.push(card);
 			}
 
 			self.suit_in_play = None;
-			self.players[hand_winner].capture(unwrapped);
-			self.turn = hand_winner;
-			self.previous_trick_winner = hand_winner;
+			self.players[trick_winner].capture(unwrapped);
+			self.turn = trick_winner;
+			self.previous_trick_winner = trick_winner;
 		} else {
 			self.turn = temp;
 		};
@@ -134,8 +134,8 @@ impl Game {
 		} else if self.started {
 			Err(StartError::GameAlreadyStarted)
 		} else {
-			self.started = true;
 			self.deal_cards();
+			self.started = true;
 			Ok(())
 		}
 	}
@@ -144,11 +144,13 @@ impl Game {
 		let mut scores = [Team::new(), Team::new()];
 		for (i, player) in self.players.iter().enumerate() {
 			let captured_cards = player.get_captured();
-			scores[i % 2].add_to_captured(captured_cards.len() as u8);
+
+			let team = &mut scores[i % 2];
+			team.add_to_captured(captured_cards.len() as u8);
 
 			for card in captured_cards {
 				if card.get_rank() == Rank::Ten {
-					scores[i % 2].increment_tens();
+					team.increment_tens();
 				}
 			}
 		}

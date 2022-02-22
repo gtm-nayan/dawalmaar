@@ -9,6 +9,14 @@ impl Team {
 		self.captured_total += captured;
 	}
 
+	pub fn get_tens(&self) -> u8 {
+		self.tens
+	}
+
+	pub fn get_total_captured(&self) -> u8 {
+		self.captured_total
+	}
+
 	pub(crate) fn increment_tens(&mut self) {
 		self.tens += 1;
 	}
@@ -18,13 +26,5 @@ impl Team {
 			captured_total: 0,
 			tens: 0,
 		}
-	}
-
-	pub fn get_total_captured(&self) -> u8 {
-		self.captured_total
-	}
-
-	pub fn get_tens(&self) -> u8 {
-		self.tens
 	}
 }
