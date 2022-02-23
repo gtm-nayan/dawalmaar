@@ -14,7 +14,7 @@ pub enum PlayCardError {
 }
 
 #[derive(Debug)]
-pub enum TrickEndResult {
-	NextTrick(usize),
+pub enum TurnEndResult {
+	NextTurn(usize),
 	GameOver([Team; 2]),
 }

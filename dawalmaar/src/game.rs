@@ -1,7 +1,7 @@
 use crate::{
 	cards::{Card, Rank, Suit},
 	deck::Deck,
-	enums::{PlayCardError, StartError, TrickEndResult},
+	enums::{PlayCardError, StartError, TurnEndResult},
 	player::Player,
 	teams::Team,
 };
@@ -14,6 +14,20 @@ pub struct Game {
 	turn: usize,
 	previous_trick_winner: usize,
 	table: [Option<Card>; 4],
+}
+
+impl Game {
+	pub fn new() -> Self {
+		Self {
+			players: Vec::new(),
+			started: false,
+			suit_in_play: None,
+			trump_suit: None,
+			turn: 0,
+			previous_trick_winner: 0,
+			table: [None, None, None, None],
+		}
+	}
 }
 
 impl Game {
@@ -35,6 +49,32 @@ impl Game {
 		}
 	}
 
+	fn end_trick(&mut self) -> usize {
+		let mut highest_card_value = i32::MIN;
+		let mut trick_winner = 0;
+		let mut unwrapped = Vec::new();
+		for (i, _card) in self.table.iter_mut().enumerate() {
+			let card = _card
+				.take()
+				.expect("Table should have all cards by the end of the trick");
+
+			let value = card.get_value(self.suit_in_play.unwrap(), self.trump_suit);
+
+			if value > highest_card_value {
+				highest_card_value = value;
+				trick_winner = i;
+			}
+			unwrapped.push(card);
+		}
+		self.suit_in_play = None;
+		self.players[trick_winner].capture(unwrapped);
+		self.previous_trick_winner = trick_winner;
+		trick_winner
+	}
+
+	/// Returns the hand of the player at the given index as a collection of tuples
+	/// where the first element is a boolean indicating whether the player can play
+	/// the card and the second element is the card itself.
 	pub fn get_hand(&self, player_idx: usize) -> Vec<(bool, Card)> {
 		let player = &self.players[player_idx];
 		player
@@ -56,52 +96,27 @@ impl Game {
 		self.players.iter().all(|player| player.is_empty())
 	}
 
-	pub fn new() -> Game {
-		Game {
-			players: Vec::new(),
-			started: false,
-			suit_in_play: None,
-			trump_suit: None,
-			turn: 0,
-			previous_trick_winner: 0,
-			table: [None, None, None, None],
-		}
-	}
-
-	fn next_turn(&mut self) -> usize {
+	fn next_turn(&mut self) -> TurnEndResult {
 		let temp = (self.turn + 1) % 4;
 
-		if temp == self.previous_trick_winner {
-			// This means we've been through all 4 players
-			let mut highest_card_value = i32::MIN;
-			let mut trick_winner = 0;
-			let mut unwrapped = Vec::new();
-
-			for (i, _card) in self.table.iter().enumerate() {
-				let card = _card.unwrap();
-				let value = card.get_value(self.suit_in_play.unwrap(), self.trump_suit);
-				if value > highest_card_value {
-					highest_card_value = value;
-					trick_winner = i;
-				}
-				unwrapped.push(card);
-			}
-
-			self.suit_in_play = None;
-			self.players[trick_winner].capture(unwrapped);
-			self.turn = trick_winner;
-			self.previous_trick_winner = trick_winner;
+		self.turn = if temp == self.previous_trick_winner {
+			self.end_trick()
 		} else {
-			self.turn = temp;
+			temp
 		};
-		self.turn
+
+		if self.is_over() {
+			TurnEndResult::GameOver(self.tally_scores())
+		} else {
+			TurnEndResult::NextTurn(self.turn)
+		}
 	}
 
 	pub fn play_card(
 		&mut self,
 		player_idx: usize,
 		card: Card,
-	) -> Result<TrickEndResult, PlayCardError> {
+	) -> Result<TurnEndResult, PlayCardError> {
 		if !self.started {
 			return Err(PlayCardError::GameNotStarted);
 		}
@@ -112,20 +127,18 @@ impl Game {
 
 		let player = &mut self.players[player_idx];
 		let card = player.play_card(card, self.suit_in_play)?;
+		let played_suit = card.get_suit();
 
-		if self.suit_in_play.is_none() {
-			self.suit_in_play = Some(card.get_suit());
-		} else if self.trump_suit.is_none() && card.get_suit() != self.suit_in_play.unwrap() {
-			self.trump_suit = Some(card.get_suit());
-		}
-		self.table[player_idx] = Some(card);
-		let next_turn = self.next_turn();
-
-		if self.is_over() {
-			Ok(TrickEndResult::GameOver(self.tally_scores()))
+		if let Some(suit_in_play) = self.suit_in_play {
+			if self.trump_suit.is_none() && played_suit != suit_in_play {
+				self.trump_suit = Some(played_suit);
+			}
 		} else {
-			Ok(TrickEndResult::NextTrick(next_turn))
+			self.suit_in_play = Some(played_suit);
 		}
+
+		self.table[player_idx] = Some(card);
+		Ok(self.next_turn())
 	}
 
 	pub fn start(&mut self) -> Result<(), StartError> {
