@@ -75,13 +75,12 @@ impl Game {
 	/// Returns the hand of the player at the given index as a collection of tuples
 	/// where the first element is a boolean indicating whether the player can play
 	/// the card and the second element is the card itself.
-	pub fn get_hand(&self, player_idx: usize) -> Vec<(bool, Card)> {
+	pub fn get_hand(&self, player_idx: usize) -> impl Iterator<Item = (bool, Card)> + '_ {
 		let player = &self.players[player_idx];
 		player
 			.get_hand()
 			.iter()
 			.map(|c| (player.can_play(c, self.suit_in_play), *c))
-			.collect()
 	}
 
 	pub fn has_started(&self) -> bool {
@@ -153,7 +152,7 @@ impl Game {
 		}
 	}
 
-	pub fn tally_scores(&self) -> [Team; 2] {
+	fn tally_scores(&self) -> [Team; 2] {
 		let mut scores = [Team::new(), Team::new()];
 		for (i, player) in self.players.iter().enumerate() {
 			let captured_cards = player.get_captured();
