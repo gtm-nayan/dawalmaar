@@ -25,7 +25,7 @@ impl Game {
 			trump_suit: None,
 			turn: 0,
 			previous_trick_winner: 0,
-			table: [None, None, None, None],
+			table: [None; 4],
 		}
 	}
 }
@@ -80,7 +80,7 @@ impl Game {
 		player
 			.get_hand()
 			.iter()
-			.map(|c| (player.can_play(c, self.suit_in_play), *c))
+			.map(|card| (player.can_play(card, self.suit_in_play), *card))
 	}
 
 	pub fn has_started(&self) -> bool {
