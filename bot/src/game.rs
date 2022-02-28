@@ -1,12 +1,12 @@
-// use dawalmaar::{
-// 	cards::{Card, Rank, Suit},
-// 	game::Game as IGame,
-// };
+use dawalmaar::{
+	cards::{Card, Rank, Suit},
+	game::Game as IGame,
+};
 
-// struct Game {
-// 	i_game: IGame,
-// 	players_map: Vec<usize>,
-// }
+pub struct Game {
+	i_game: IGame,
+	players_map: Vec<usize>,
+}
 
 // impl Game {
 // 	pub fn new() -> Self {

@@ -3,16 +3,15 @@ mod game;
 use dotenv::dotenv;
 use poise::{
 	serenity_prelude::{CreateAllowedMentions, UserId},
-	FrameworkOptions, PrefixFrameworkOptions,
+	Framework, FrameworkOptions, PrefixFrameworkOptions,
 };
 use std::{
 	collections::{HashMap, HashSet},
 	env,
 	sync::Mutex,
 };
-
 pub struct Data {
-	games: Mutex<HashMap<String, u32>>,
+	games: Mutex<HashMap<game::Game, u32>>,
 }
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -36,14 +35,34 @@ async fn main() {
 	};
 
 	let framework_options: FrameworkOptions<Data, Error> = FrameworkOptions {
-		
 		pre_command: |ctx| {
 			Box::pin(async move {
-				println!("{:?}", ctx.data().games.lock());
+				println!("{:?}", ctx.command());
 			})
 		},
+		owners: {
+			let mut owners = HashSet::new();
+			owners.insert(339731096793251854.into());
+			owners
+		},
+		prefix_options,
+
 		..Default::default()
 	};
+
+	Framework::build()
+		.token(get_token())
+		.user_data_setup(move |_, _, _|{
+			Box::pin(async move {
+				Ok(Data {
+					games: Mutex::new(HashMap::new()),
+				})
+			})
+		})
+		.options(framework_options)
+		.run()
+		.await
+		.unwrap();
 }
 
 fn get_token() -> String {
