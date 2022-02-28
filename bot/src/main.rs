@@ -1,5 +1,7 @@
 mod game;
+mod commands;
 
+use commands::ping;
 use dotenv::dotenv;
 use poise::{
 	serenity_prelude::{CreateAllowedMentions, UserId},
@@ -46,6 +48,9 @@ async fn main() {
 			owners
 		},
 		prefix_options,
+		commands: vec![
+			ping()
+		],
 
 		..Default::default()
 	};
