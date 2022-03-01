@@ -1,10 +1,11 @@
-mod game;
 mod commands;
+mod game;
 
-use commands::ping;
+use commands::{join, ping, register};
 use dotenv::dotenv;
+use game::Game;
 use poise::{
-	serenity_prelude::{CreateAllowedMentions, UserId},
+	serenity_prelude::{ChannelId, UserId},
 	Framework, FrameworkOptions, PrefixFrameworkOptions,
 };
 use std::{
@@ -13,7 +14,7 @@ use std::{
 	sync::Mutex,
 };
 pub struct Data {
-	games: Mutex<HashMap<game::Game, u32>>,
+	games: Mutex<HashMap<ChannelId, Game>>,
 }
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -23,7 +24,7 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 async fn main() {
 	dotenv().ok();
 
-	let prefix_options: PrefixFrameworkOptions<Data, Error> = PrefixFrameworkOptions {
+	let prefix_options = PrefixFrameworkOptions {
 		prefix: Some("cap".into()),
 		additional_prefixes: vec![],
 		dynamic_prefix: None,
@@ -36,28 +37,26 @@ async fn main() {
 		ignore_edits_if_not_yet_responded: true,
 	};
 
-	let framework_options: FrameworkOptions<Data, Error> = FrameworkOptions {
+	let framework_options = FrameworkOptions {
+		commands: vec![ping(), register(), join()],
 		pre_command: |ctx| {
 			Box::pin(async move {
 				println!("{:?}", ctx.command());
 			})
 		},
+		prefix_options,
 		owners: {
 			let mut owners = HashSet::new();
-			owners.insert(339731096793251854.into());
+			owners.insert(UserId(339731096793251854_u64));
 			owners
 		},
-		prefix_options,
-		commands: vec![
-			ping()
-		],
 
 		..Default::default()
 	};
 
-	Framework::build()
+	Framework::<Data, Error>::build()
 		.token(get_token())
-		.user_data_setup(move |_, _, _|{
+		.user_data_setup(move |_, _, _| {
 			Box::pin(async move {
 				Ok(Data {
 					games: Mutex::new(HashMap::new()),
@@ -73,3 +72,5 @@ async fn main() {
 fn get_token() -> String {
 	env::var("DISCORD_TOKEN").expect("Token not provided.")
 }
+
+
