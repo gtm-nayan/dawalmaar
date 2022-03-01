@@ -39,11 +39,6 @@ async fn main() {
 
 	let framework_options = FrameworkOptions {
 		commands: vec![ping(), register(), join()],
-		pre_command: |ctx| {
-			Box::pin(async move {
-				println!("{:?}", ctx.command());
-			})
-		},
 		prefix_options,
 		owners: {
 			let mut owners = HashSet::new();
