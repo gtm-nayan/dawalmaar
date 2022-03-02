@@ -1,7 +1,7 @@
-use crate::{game::BasicResponse, Context, Error};
+use crate::{Context, Error, game::BasicResponse};
 
 #[poise::command(slash_command)]
-pub async fn join(ctx: Context<'_>) -> Result<(), Error> {
+pub async fn start(ctx: Context<'_>) -> Result<(), Error> {
 	let BasicResponse {
 		ephemeral: eph,
 		message,
@@ -11,7 +11,7 @@ pub async fn join(ctx: Context<'_>) -> Result<(), Error> {
 		.unwrap()
 		.entry(ctx.channel_id())
 		.or_default()
-		.add_player();
+		.start();
 
 	ctx.send(|r| r.content(message).ephemeral(eph)).await?;
 	Ok(())
