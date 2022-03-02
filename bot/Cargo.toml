@@ -11,4 +11,8 @@ poise = { git = "https://github.com/kangalioo/poise", branch = "master", feature
 	"collector",
 ] }
 dotenv = "0.15.0"
+indexmap = "1.8.0"
+dashmap = "5.1.0"
+regex = "1.5.4"
+lazy_static = "1.4.0"
 tokio = { version = "1.17.0", features = ["rt-multi-thread", "process"] }
