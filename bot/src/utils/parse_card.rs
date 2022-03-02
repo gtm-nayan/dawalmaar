@@ -106,4 +106,16 @@ mod tests {
 			Card::new(Suit::Hearts, Rank::Five)
 		);
 	}
+
+	#[test]
+	#[should_panic]
+	fn fails() {
+		parse_card("14 of hearts".into()).unwrap();
+	}
+
+	#[test]
+	#[should_panic]
+	fn fails_2() {
+		parse_card("h1".into()).unwrap();
+	}
 }
