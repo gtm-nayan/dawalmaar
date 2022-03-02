@@ -83,6 +83,10 @@ impl Game {
 			.map(|card| (player.can_play(card, self.suit_in_play), *card))
 	}
 
+	pub fn get_turn(&self) -> usize {
+		self.turn
+	}
+
 	pub fn has_started(&self) -> bool {
 		self.started
 	}
