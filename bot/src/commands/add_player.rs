@@ -7,11 +7,9 @@ pub async fn join(ctx: Context<'_>) -> Result<(), Error> {
 		message,
 	} = ctx.data()
 		.games
-		.lock()
-		.unwrap()
 		.entry(ctx.channel_id())
 		.or_default()
-		.add_player();
+		.add_player(ctx.author().id);
 
 	ctx.send(|r| r.content(message).ephemeral(eph)).await?;
 	Ok(())

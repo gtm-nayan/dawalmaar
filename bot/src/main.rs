@@ -1,14 +1,15 @@
 mod commands;
 mod game;
 mod setup;
+mod utils;
 
+use dashmap::DashMap;
 use setup::{get_options, get_token};
 
 use game::Game;
 use poise::{serenity_prelude::ChannelId, Framework};
-use std::{collections::HashMap, sync::Mutex};
 pub struct Data {
-	games: Mutex<HashMap<ChannelId, Game>>,
+	games: DashMap<ChannelId, Game>,
 }
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -21,7 +22,7 @@ async fn main() {
 		.user_data_setup(move |_, _, _| {
 			Box::pin(async move {
 				Ok(Data {
-					games: Mutex::new(HashMap::new()),
+					games: DashMap::new(),
 				})
 			})
 		})
