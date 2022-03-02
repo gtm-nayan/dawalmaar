@@ -1,6 +1,11 @@
-use dawalmaar::enums::StartError::{GameAlreadyStarted, GameNotFull};
-use dawalmaar::enums::{TurnEndResult, PlayCardError};
-use dawalmaar::game::Game as IGame;
+use dawalmaar::{
+	enums::{
+		PlayCardError,
+		StartError::{GameAlreadyStarted, GameNotFull},
+		TurnEndResult,
+	},
+	game::Game as IGame,
+};
 use indexmap::IndexSet;
 use poise::serenity_prelude::UserId;
 
@@ -126,6 +131,7 @@ impl Game {
 				.into(),
 				ephemeral: true,
 			},
+			// todo!() show scores when the game is over.
 			_ => BasicResponse {
 				message: "Game over".into(),
 				ephemeral: false,

@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use poise::{serenity_prelude::UserId, FrameworkOptions, PrefixFrameworkOptions};
 
 use crate::{
-	commands::{hand, join, ping, register_commands, start},
+	commands::{hand, join, ping, play, register_commands, start},
 	Data, Error,
 };
 
@@ -22,7 +22,7 @@ pub fn get_options() -> FrameworkOptions<Data, Error> {
 	};
 
 	let framework_options = FrameworkOptions {
-		commands: vec![ping(), register_commands(), join(), start(), hand()],
+		commands: vec![ping(), register_commands(), join(), start(), hand(), play()],
 		prefix_options,
 		owners: {
 			let mut owners = HashSet::new();

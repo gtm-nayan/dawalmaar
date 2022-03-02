@@ -1,4 +1,4 @@
-use crate::{game::BasicResponse, Context, Error};
+use crate::{Context, Error, utils::no_game_in_this_channel};
 
 #[poise::command(slash_command)]
 pub async fn start(ctx: Context<'_>) -> Result<(), Error> {
@@ -8,10 +8,7 @@ pub async fn start(ctx: Context<'_>) -> Result<(), Error> {
 		if let Some(mut game) = game {
 			game.start()
 		} else {
-			BasicResponse {
-				message: "There's no game in this channel. Do `/join` to create one.".into(),
-				ephemeral: true,
-			}
+			no_game_in_this_channel()
 		}
 	};
 	ctx.send(|r| r.content(res.message).ephemeral(res.ephemeral))
