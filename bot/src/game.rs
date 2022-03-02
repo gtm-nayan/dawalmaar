@@ -90,7 +90,7 @@ impl Game {
 		}
 	}
 
-	pub fn play_card(&mut self, player_id: UserId, card: &str) -> BasicResponse {
+	pub fn play_card(&mut self, player_id: UserId, card: String) -> BasicResponse {
 		let player_idx = match self.players.get_index_of(&player_id) {
 			Some(idx) => idx,
 			_ => {

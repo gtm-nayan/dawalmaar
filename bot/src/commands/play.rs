@@ -9,7 +9,7 @@ pub async fn play(
 		let game = ctx.data().games.get_mut(&ctx.channel_id());
 
 		if let Some(mut game) = game {
-			game.play_card(ctx.author().id, &card)
+			game.play_card(ctx.author().id, card)
 		} else {
 			no_game_in_this_channel()
 		}

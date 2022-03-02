@@ -3,13 +3,15 @@ use lazy_static::lazy_static;
 use regex::{Match, Regex};
 
 lazy_static! {
-	static ref CARD_REGEX: Regex = Regex::new(r#"(?P<long>^(?P<rank>Ace|King|Queen|Jack|(?:[AKQJ2-9]|10))\s+of\s+(?P<suit>Spade|Club|Diamond|Heart)s?)$|(?P<short>^(?P<suit2>S|C|D|H)(?P<rank2>[AKQJ2-9]|10))$"#).unwrap();
+	static ref CARD_REGEX: Regex = Regex::new(r#"(?P<long>^(?P<rank>ace|king|queen|jack|(?:[akqj2-9]|10))\s+of\s+(?P<suit>spade|club|diamond|heart)s?)$|(?P<short>^(?P<suit2>s|c|d|h)(?P<rank2>[akqj2-9]|10))$"#).unwrap();
 }
 
+#[derive(Debug)]
 pub struct ParseCardError;
 
-pub fn parse_card(card: &str) -> Result<Card, ParseCardError> {
-	let matches = CARD_REGEX.captures(card).ok_or(ParseCardError)?;
+pub fn parse_card(mut card: String) -> Result<Card, ParseCardError> {
+	card.make_ascii_lowercase();
+	let matches = CARD_REGEX.captures(&card).ok_or(ParseCardError)?;
 
 	let (rank, suit) = if matches.name("long").is_some() {
 		(matches.name("rank"), matches.name("suit"))
@@ -21,7 +23,7 @@ pub fn parse_card(card: &str) -> Result<Card, ParseCardError> {
 }
 
 fn parse_suit(suit: Option<Match>) -> Suit {
-	let id = &suit.unwrap().as_str().to_ascii_lowercase()[..1];
+	let id = &suit.unwrap().as_str()[..1];
 
 	match id {
 		"h" => Suit::Hearts,
@@ -33,7 +35,7 @@ fn parse_suit(suit: Option<Match>) -> Suit {
 }
 
 fn parse_rank(rank: Option<Match>) -> Rank {
-	let id = &rank.unwrap().as_str().to_ascii_lowercase()[..1];
+	let id = &rank.unwrap().as_str()[..1];
 
 	match id {
 		"2" => Rank::Two,
@@ -50,5 +52,58 @@ fn parse_rank(rank: Option<Match>) -> Rank {
 		"q" => Rank::Queen,
 		"j" => Rank::Jack,
 		_ => panic!("Bad rank string"),
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn long() {
+		assert_eq!(
+			parse_card("Ace of Hearts".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Ace)
+		);
+		assert_eq!(
+			parse_card("Ace of Heart".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Ace)
+		);
+		assert_eq!(
+			parse_card("ace of Hearts".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Ace)
+		);
+		assert_eq!(
+			parse_card("10 of Hearts".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Ten)
+		);
+		assert_eq!(
+			parse_card("5 of Hearts".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Five)
+		);
+	}
+
+	#[test]
+	fn short() {
+		assert_eq!(
+			parse_card("ha".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Ace)
+		);
+		assert_eq!(
+			parse_card("Ha".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Ace)
+		);
+		assert_eq!(
+			parse_card("hA".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Ace)
+		);
+		assert_eq!(
+			parse_card("h10".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Ten)
+		);
+		assert_eq!(
+			parse_card("h5".into()).unwrap(),
+			Card::new(Suit::Hearts, Rank::Five)
+		);
 	}
 }
