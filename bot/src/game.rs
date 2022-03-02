@@ -90,52 +90,67 @@ impl Game {
 		}
 	}
 
-	pub fn play_card(&mut self, player_id: UserId, card: String) -> BasicResponse {
+	pub fn play_card(&mut self, player_id: UserId, card: String) -> (bool, BasicResponse) {
 		let player_idx = match self.players.get_index_of(&player_id) {
 			Some(idx) => idx,
 			_ => {
-				return BasicResponse {
-					message: "You're not in the game.".into(),
-					ephemeral: true,
-				};
+				return (
+					false,
+					BasicResponse {
+						message: "You're not in the game.".into(),
+						ephemeral: true,
+					},
+				);
 			}
 		};
 
 		let card = match parse_card(card) {
 			Ok(card) => card,
 			_ => {
-				return BasicResponse {
-					message: "Please provide a valid card.".into(),
-					ephemeral: true,
-				};
+				return (
+					false,
+					BasicResponse {
+						message: "Please provide a valid card.".into(),
+						ephemeral: true,
+					},
+				);
 			}
 		};
 
 		match self.i_game.play_card(player_idx, card) {
 			Ok(TurnEndResult::NextTurn(next_turn)) => {
 				let next_player = self.players.get_index(next_turn).unwrap();
-				BasicResponse {
-					message: format!(
-						"<@{player_id}> played {card}. It is now <@{next_player}>'s turn."
-					),
-					ephemeral: false,
-				}
+				(
+					false,
+					BasicResponse {
+						message: format!(
+							"<@{player_id}> played {card}. It is now <@{next_player}>'s turn."
+						),
+						ephemeral: false,
+					},
+				)
 			}
-			Err(variant) => BasicResponse {
-				message: match variant {
-					PlayCardError::NotThisPlayersTurn => "It's not your turn.",
-					PlayCardError::GameNotStarted => "The game hasn't started.",
-					PlayCardError::CardNotInHand => "You don't have that card.",
-					PlayCardError::CantPlaySuit => "Can't play that suit here.",
-				}
-				.into(),
-				ephemeral: true,
-			},
+			Err(variant) => (
+				false,
+				BasicResponse {
+					message: match variant {
+						PlayCardError::NotThisPlayersTurn => "It's not your turn.",
+						PlayCardError::GameNotStarted => "The game hasn't started.",
+						PlayCardError::CardNotInHand => "You don't have that card.",
+						PlayCardError::CantPlaySuit => "Can't play that suit here.",
+					}
+					.into(),
+					ephemeral: true,
+				},
+			),
 			// todo!() show scores when the game is over.
-			_ => BasicResponse {
-				message: "Game over".into(),
-				ephemeral: false,
-			},
+			_ => (
+				true,
+				BasicResponse {
+					message: "Game over".into(),
+					ephemeral: false,
+				},
+			),
 		}
 	}
 
