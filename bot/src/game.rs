@@ -117,22 +117,20 @@ impl Game {
 			}
 		};
 
-		match self.i_game.play_card(player_idx, card) {
-			Ok(TurnEndResult::NextTurn(next_turn)) => {
-				let next_player = self.players.get_index(next_turn).unwrap();
-				(
-					false,
+		return (
+			false,
+			match self.i_game.play_card(player_idx, card) {
+				Ok(TurnEndResult::NextTurn(next_turn)) => {
+					let next_player = self.players.get_index(next_turn).unwrap();
+
 					BasicResponse {
 						message: format!(
 							"<@{player_id}> played {card}. It is now <@{next_player}>'s turn."
 						),
 						ephemeral: false,
-					},
-				)
-			}
-			Err(variant) => (
-				false,
-				BasicResponse {
+					}
+				}
+				Err(variant) => BasicResponse {
 					message: match variant {
 						PlayCardError::NotThisPlayersTurn => "It's not your turn.",
 						PlayCardError::GameNotStarted => "The game hasn't started.",
@@ -142,16 +140,53 @@ impl Game {
 					.into(),
 					ephemeral: true,
 				},
-			),
-			// todo!() show scores when the game is over.
-			_ => (
-				true,
-				BasicResponse {
-					message: "Game over".into(),
-					ephemeral: false,
-				},
-			),
-		}
+
+				Ok(TurnEndResult::GameOver(scores)) => {
+					// todo!() clean up this jank
+					let team1 = format!(
+						"<@{}> and <@{}>",
+						self.players.get_index(0).unwrap(),
+						self.players.get_index(2).unwrap()
+					);
+					let team2 = format!(
+						"<@{}> and <@{}>",
+						self.players.get_index(1).unwrap(),
+						self.players.get_index(3).unwrap()
+					);
+
+					let (team1_tens, team2_tens) = (scores[0].get_tens(), scores[1].get_tens());
+					let (team1_total, team2_total) = (
+						scores[0].get_total_captured(),
+						scores[1].get_total_captured(),
+					);
+
+					let winning_team = if team1_tens > team2_tens {
+						// Team 1 has more tens
+						(team1, team1_tens, team1_total)
+					} else if team2_tens > team1_tens {
+						// Team 2 has more tens
+						(team2, team2_tens, team2_total)
+					} else if team1_total > team2_total {
+						// Both have 2 tens but team 1 has more total tricks.
+						(team1, team1_tens, team1_total)
+					} else {
+						// Both have 2 tens but team 2 has more total tricks.
+						(team2, team2_tens, team2_total)
+					};
+
+					return (
+						true,
+						BasicResponse {
+							message: format!(
+								"Game over. {} won with {} tens and {} total captured.",
+								winning_team.0, winning_team.1, winning_team.2
+							),
+							ephemeral: false,
+						},
+					);
+				}
+			},
+		);
 	}
 
 	pub fn start(&mut self) -> BasicResponse {
