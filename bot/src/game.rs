@@ -142,36 +142,14 @@ impl Game {
 				},
 
 				Ok(TurnEndResult::GameOver(scores)) => {
-					// todo!() clean up this jank
-					let team1 = format!(
-						"<@{}> and <@{}>",
-						self.players.get_index(0).unwrap(),
-						self.players.get_index(2).unwrap()
-					);
-					let team2 = format!(
-						"<@{}> and <@{}>",
-						self.players.get_index(1).unwrap(),
-						self.players.get_index(3).unwrap()
-					);
+					let t1 = &scores[0];
+					let t2 = &scores[1];
 
-					let (team1_tens, team2_tens) = (scores[0].get_tens(), scores[1].get_tens());
-					let (team1_total, team2_total) = (
-						scores[0].get_total_captured(),
-						scores[1].get_total_captured(),
-					);
-
-					let winning_team = if team1_tens > team2_tens {
-						// Team 1 has more tens
-						(team1, team1_tens, team1_total)
-					} else if team2_tens > team1_tens {
-						// Team 2 has more tens
-						(team2, team2_tens, team2_total)
-					} else if team1_total > team2_total {
-						// Both have 2 tens but team 1 has more total tricks.
-						(team1, team1_tens, team1_total)
-					} else {
-						// Both have 2 tens but team 2 has more total tricks.
-						(team2, team2_tens, team2_total)
+					let winning_team_idx = match t1.get_tens().cmp(&t2.get_tens()) {
+						std::cmp::Ordering::Greater => 0,
+						std::cmp::Ordering::Less => 1,
+						_ if t1.get_total_captured() > t2.get_total_captured() => 0,
+						_ => 1,
 					};
 
 					return (
@@ -179,7 +157,9 @@ impl Game {
 						BasicResponse {
 							message: format!(
 								"Game over. {} won with {} tens and {} total captured.",
-								winning_team.0, winning_team.1, winning_team.2
+								self.team_members(winning_team_idx),
+								scores[winning_team_idx].get_tens(),
+								scores[winning_team_idx].get_total_captured()
 							),
 							ephemeral: false,
 						},
@@ -187,6 +167,14 @@ impl Game {
 				}
 			},
 		);
+	}
+
+	pub fn team_members(&self, team_idx: usize) -> String {
+		format!(
+			"<@{}> and <@{}>",
+			self.players.get_index(0 + team_idx).unwrap(),
+			self.players.get_index(2 + team_idx).unwrap()
+		)
 	}
 
 	pub fn start(&mut self) -> BasicResponse {
