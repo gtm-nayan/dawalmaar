@@ -1,8 +1,6 @@
-use crate::game::BasicResponse;
+use poise::CreateReply;
 
-pub fn no_game_in_this_channel() -> BasicResponse {
-	BasicResponse {
-		message: "There's no game in this channel. Do `/join` to create one.".into(),
-		ephemeral: true,
-	}
+pub fn no_game_in_this_channel(res: &mut CreateReply) {
+	res.content("There is no game in this channel")
+		.ephemeral(true);
 }

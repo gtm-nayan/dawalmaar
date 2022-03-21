@@ -7,18 +7,12 @@ use dawalmaar::{
 	game::Game as IGame,
 };
 use indexmap::IndexSet;
-use poise::serenity_prelude::UserId;
+use poise::{serenity_prelude::UserId, CreateReply};
 
 use crate::utils::parse_card::parse_card;
 pub struct Game {
 	i_game: IGame,
 	players: IndexSet<UserId>, // todo!() Replace with a bimap
-}
-
-pub struct BasicResponse {
-	/// The text content for the message to send.
-	pub message: String,
-	pub ephemeral: bool,
 }
 
 impl Default for Game {
@@ -31,42 +25,33 @@ impl Default for Game {
 }
 
 impl Game {
-	pub fn add_player(&mut self, id: UserId) -> BasicResponse {
+	pub fn add_player(&mut self, id: UserId, reply: &mut CreateReply) {
 		if self.players.contains(&id) {
-			BasicResponse {
-				message: "You have already joined the game.".into(),
-				ephemeral: true,
-			}
+			reply
+				.content("You are already in this game!")
+				.ephemeral(true);
 		} else if let Ok(_) = self.i_game.add_player() {
 			self.players.insert(id);
 
-			BasicResponse {
-				message: format!("<@{id}> has joined the game"),
-				ephemeral: false,
-			}
+			reply.content(format!("<@{id}> has joined the game!"));
 		} else {
-			BasicResponse {
-				message: "Game is already full".into(),
-				ephemeral: true,
-			}
+			reply.content("The game is full!").ephemeral(true);
 		}
 	}
 
-	pub fn get_hand(&mut self, id: UserId) -> BasicResponse {
+	pub fn get_hand(&mut self, id: UserId, reply: &mut CreateReply) {
 		if !self.i_game.has_started() {
-			return BasicResponse {
-				message: "The game hasn't started yet".into(),
-				ephemeral: true,
-			};
+			reply
+				.content("The game has not started yet.")
+				.ephemeral(true);
+			return;
 		}
 
 		let player_idx = match self.players.get_index_of(&id) {
 			Some(idx) => idx,
 			_ => {
-				return BasicResponse {
-					message: "You're not in the game.".into(),
-					ephemeral: true,
-				}
+				reply.content("You are not in the game.").ephemeral(true);
+				return;
 			}
 		};
 		let mut message = String::from(
@@ -82,91 +67,72 @@ impl Game {
 					format!("{card}\n")
 				}
 			})
-			.for_each(|ref card| message.push_str(card));
+			.for_each(|card| message.push_str(&card));
 
-		BasicResponse {
-			message,
-			ephemeral: true,
-		}
+		reply.content(message).ephemeral(true);
 	}
 
-	pub fn play_card(&mut self, player_id: UserId, card: String) -> (bool, BasicResponse) {
+	pub fn play_card(&mut self, player_id: UserId, card: String, reply: &mut CreateReply) -> bool {
 		let player_idx = match self.players.get_index_of(&player_id) {
 			Some(idx) => idx,
 			_ => {
-				return (
-					false,
-					BasicResponse {
-						message: "You're not in the game.".into(),
-						ephemeral: true,
-					},
-				);
+				reply.content("You are not in the game.").ephemeral(true);
+				return false;
 			}
 		};
 
 		let card = match parse_card(card) {
 			Ok(card) => card,
 			_ => {
-				return (
-					false,
-					BasicResponse {
-						message: "Please provide a valid card.".into(),
-						ephemeral: true,
-					},
-				);
+				reply.content("Invalid card.").ephemeral(true);
+				return false;
 			}
 		};
 
-		return (
-			false,
-			match self.i_game.play_card(player_idx, card) {
-				Ok(TurnEndResult::NextTurn(next_turn)) => {
-					let next_player = self.players.get_index(next_turn).unwrap();
-
-					BasicResponse {
-						message: format!(
-							"<@{player_id}> played {card}. It is now <@{next_player}>'s turn."
-						),
-						ephemeral: false,
-					}
-				}
-				Err(variant) => BasicResponse {
-					message: match variant {
+		match self.i_game.play_card(player_idx, card) {
+			Err(variant) => {
+				reply
+					.content(match variant {
 						PlayCardError::NotThisPlayersTurn => "It's not your turn.",
 						PlayCardError::GameNotStarted => "The game hasn't started.",
 						PlayCardError::CardNotInHand => "You don't have that card.",
 						PlayCardError::CantPlaySuit => "Can't play that suit here.",
-					}
-					.into(),
-					ephemeral: true,
-				},
+					})
+					.ephemeral(true);
+				false
+			}
 
-				Ok(TurnEndResult::GameOver(scores)) => {
-					let t1 = &scores[0];
-					let t2 = &scores[1];
+			Ok(TurnEndResult::NextTurn(next_turn)) => {
+				let next_player = self.players.get_index(next_turn).unwrap();
 
-					let winning_team_idx = match t1.get_tens().cmp(&t2.get_tens()) {
-						std::cmp::Ordering::Greater => 0,
-						std::cmp::Ordering::Less => 1,
-						_ if t1.get_total_captured() > t2.get_total_captured() => 0,
-						_ => 1,
-					};
+				reply.content(format!(
+					"<@{player_id}> has played the card. It is now <@{next_player}>'s turn.",
+				));
+				false
+			}
 
-					return (
-						true,
-						BasicResponse {
-							message: format!(
-								"Game over. {} won with {} tens and {} total captured.",
-								self.team_members(winning_team_idx),
-								scores[winning_team_idx].get_tens(),
-								scores[winning_team_idx].get_total_captured()
-							),
-							ephemeral: false,
-						},
-					);
-				}
-			},
-		);
+			Ok(TurnEndResult::GameOver(scores)) => {
+				let t1 = &scores[0];
+				let t2 = &scores[1];
+
+				let winning_team_idx = match t1.get_tens().cmp(&t2.get_tens()) {
+					std::cmp::Ordering::Greater => 0,
+					std::cmp::Ordering::Less => 1,
+					_ if t1.get_total_captured() > t2.get_total_captured() => 0,
+					_ => 1,
+				};
+
+				reply
+					.content(format!(
+						"Game over. {} won with {} tens and {} total captured.",
+						self.team_members(winning_team_idx),
+						scores[winning_team_idx].get_tens(),
+						scores[winning_team_idx].get_total_captured()
+					))
+					.ephemeral(false);
+				true
+			}
+		}
 	}
 
 	pub fn team_members(&self, team_idx: usize) -> String {
@@ -177,26 +143,22 @@ impl Game {
 		)
 	}
 
-	pub fn start(&mut self) -> BasicResponse {
+	pub fn start(&mut self, reply: &mut CreateReply) {
 		match self.i_game.start() {
-			Err(GameAlreadyStarted) => BasicResponse {
-				message: "Game has already started.".into(),
-				ephemeral: true,
-			},
-			Err(GameNotFull) => BasicResponse {
-				message: "Game isn't full yet. You need exactly 4 players to start.".into(),
-				ephemeral: false,
-			},
+			Err(GameAlreadyStarted) => reply.content("Game has already started").ephemeral(true),
+			Err(GameNotFull) => reply
+				.content("Game isn't full yet. You need exactly 4 players to start.")
+				.ephemeral(true),
+
 			_ => {
 				let current_turn = self.i_game.get_turn();
 				let player_id = self.players.get_index(current_turn).unwrap();
-				BasicResponse {
-					message: format!(
+				reply
+					.content(format!(
 						"The game has been started. <@{player_id}> run `/hand` to see your hand."
-					),
-					ephemeral: true,
-				}
+					))
+					.ephemeral(true)
 			}
-		}
+		};
 	}
 }

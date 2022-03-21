@@ -1,17 +1,17 @@
-use crate::{Context, Error, utils::no_game_in_this_channel};
+use crate::{utils::no_game_in_this_channel, Context, Error};
 
 #[poise::command(slash_command)]
 pub async fn start(ctx: Context<'_>) -> Result<(), Error> {
-	let res = {
-		let game = ctx.data().games.get_mut(&ctx.channel_id());
+	//! Start a game
 
-		if let Some(mut game) = game {
-			game.start()
+	ctx.send(|r| {
+		if let Some(mut game) = ctx.data().games.get_mut(&ctx.channel_id()) {
+			game.start(r)
 		} else {
-			no_game_in_this_channel()
+			no_game_in_this_channel(r)
 		}
-	};
-	ctx.send(|r| r.content(res.message).ephemeral(res.ephemeral))
-		.await?;
+		r
+	})
+	.await?;
 	Ok(())
 }

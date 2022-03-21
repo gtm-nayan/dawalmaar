@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use poise::{serenity_prelude::UserId, FrameworkOptions, PrefixFrameworkOptions};
+use poise::{FrameworkOptions, PrefixFrameworkOptions};
 
 use crate::{
 	commands::{hand, join, ping, play, register_commands, start},
@@ -26,7 +26,7 @@ pub fn get_options() -> FrameworkOptions<Data, Error> {
 		prefix_options,
 		owners: {
 			let mut owners = HashSet::new();
-			owners.insert(UserId(339731096793251854_u64));
+			owners.insert(339731096793251854.into());
 			owners
 		},
 
